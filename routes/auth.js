@@ -12,9 +12,7 @@ const avatar = require('../middlewares/avatar');
 
 
 const sender = nodemailer.createTransport({
-  servise: 'smtp.gmail.com',
-  port: 465,
-secure: true,
+  servise: 'gmail',
   auth: {
     user: keys.LOGIN,
     pass: keys.PASS,

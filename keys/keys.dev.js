@@ -4,5 +4,5 @@ module.exports = {
   SESSION_SECRET: 'some value',
   LOGIN: 'hryhorivvetal@gmail.com',
   PASS: 'Cqwertyuiop2002',
-  SITE_URI: 'localhost:3000',
+  SITE_URI: 'http://localhost:3000',
 };
