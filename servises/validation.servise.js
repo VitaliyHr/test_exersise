@@ -6,5 +6,5 @@ exports.check_validator = (req, res, next) => {
 	if (!errors.isEmpty()) {
 		return res.status(422).json(errors.array()[0].msg);
 	}
-	next();
+	return next();
 };
