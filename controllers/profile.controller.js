@@ -9,4 +9,4 @@ exports.Profile = async (req, res, next) => {
   await user.save();
   res.status(400).json(user);
   return next();
-}
+};

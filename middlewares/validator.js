@@ -25,4 +25,3 @@ exports.patchbook = [
   body('notes').isString().trim().withMessage('notes повинні бути типу String'),
   body('userId').isMongoId().withMessage('its must be a mongo db id')
 ];
-

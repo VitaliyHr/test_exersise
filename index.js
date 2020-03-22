@@ -1,14 +1,14 @@
-const express =require( 'express');
-const fileUpload =require( 'express-fileupload');
-const path = require('path')
-const session =require( 'express-session');
+const express = require('express');
+const fileUpload = require('express-fileupload');
+const path = require('path');
+const session = require('express-session');
 const SessionStore = require('connect-mongodb-session')({ session });
-const { connect } =require( 'mongoose');
+const { connect } = require('mongoose');
 
-const authRouter =require( './routes/auth');
-const profileRouter =require( './routes/profile');
-const booksRouter =require( './routes/books');
-const { MONGODB_URI, SESSION_SECRET } =require( './keys/index');
+const authRouter = require('./routes/auth');
+const profileRouter = require('./routes/profile');
+const booksRouter = require('./routes/books');
+const { MONGODB_URI, SESSION_SECRET } = require('./keys/index');
 
 
 const app = express();
