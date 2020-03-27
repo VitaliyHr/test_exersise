@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const auth = require('../middlewares/auth');
-const { addBookVal, patchbook } = require('../middlewares/validator');
+const { addBookVal, patchbook, ParamsValidator } = require('../middlewares/validator');
 const Ctrl = require('../controllers/books.controller');
 const { check_validator } = require('../servises/validation.servise');
 
@@ -16,19 +16,19 @@ router.post('/logined_user', auth, Ctrl.getBooksForLogined);
 router.post('/add', auth, addBookVal, check_validator, Ctrl.AddBook);
 
 //додати книгу в бібліотеку користувача
-router.post('/setOwn/:id', auth, Ctrl.SetOwn);
+router.post('/setOwn/:id', auth, ParamsValidator, check_validator, Ctrl.SetOwn);
 
 //видати всі книги з бібліотеки користувача
 router.post('/getOwn', auth, Ctrl.GetOwn);
 
 //інформація про книгу
-router.get('/:id/info', auth, Ctrl.BookInfo);
+router.get('/:id/info', auth, ParamsValidator, check_validator, Ctrl.BookInfo);
 
 //змінити книгу
-router.patch('/:id/edit', patchbook, check_validator, auth, Ctrl.EditBook);
+router.patch('/:id/edit', auth,ParamsValidator, patchbook, check_validator, Ctrl.EditBook);
 
 //видалити книгу
-router.delete('/:id/delete', auth, Ctrl.DeleteBook);
+router.delete('/:id/delete', auth, ParamsValidator, check_validator, Ctrl.DeleteBook);
 
 
 module.exports = router;

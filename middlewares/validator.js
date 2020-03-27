@@ -1,4 +1,4 @@
-const { body } = require('express-validator');
+const { body, param } = require('express-validator');
 
 exports.loginvalidator = [
   body('email').isEmail().trim().normalizeEmail().withMessage('Wrong email'),
@@ -25,3 +25,7 @@ exports.patchbook = [
   body('notes').isString().trim().withMessage('notes повинні бути типу String'),
   body('userId').isMongoId().withMessage('its must be a mongo db id')
 ];
+
+exports.ParamsValidator = [
+  param('id').isMongoId().withMessage("Wrong url")
+]

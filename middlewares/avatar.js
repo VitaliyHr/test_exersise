@@ -1,28 +1,33 @@
 
 const mime = ['image/jpg', 'image/img', 'image/jpeg'];
-module.exports = async function (req, res, user) {
+module.exports = async (req, res, next, user) => {
   if (!req.files || Object.keys(req.files).length === 0) {
-    return res.status(400).json('No files were uploaded.');
+    res.status(400).json({success:false,error:{name:"Profile error",message:"No files were uploaded."}});
+    return next();
   }
 
   const { avatar } = req.files;
   if (!mime.includes(avatar.mimetype)) {
-    return res.status(400).json('The file must be a image');
+    res.status(400).json({ success:false,error:{name:"Mimetype error", message:"The file must be a image" }});
+    return next();
   }
 
   if ((avatar.size / 1024) > 2048) {
-    return res.status(400).json('image is bigger than 2mb');
+    res.status(400).json({ success:false, error:{ name:"Size limit", message:"image is bigger than 2mb"}});
+    return next();
   }
 
   const way = `./images/${ Date.now() + '-' + avatar.name }`;
   user.avatar = way;
 
-  avatar.mv(way, (err) => {
+  await avatar.mv(way, (err) => {
     if (err) {
-      console.log(err);
+      res.status(400).json({ success:false, error:{ name:"Path error", message:"Some error in saving photo on server"}});
+      return next();
     }
   });
 
   await user.save();
-  return res.status(201).json(user);
+  res.status(201).json({success:true,user});
+  return next();
 };
