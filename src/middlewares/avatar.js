@@ -1,6 +1,6 @@
 
 const mime = ['image/jpg', 'image/img', 'image/jpeg'];
-module.exports = async (req, res, next, user) => {
+export default async (req, res, next, user) => {
   if (!req.files || Object.keys(req.files).length === 0) {
     res.status(400).json({success:false,error:{name:"Profile error",message:"No files were uploaded."}});
     return next();
