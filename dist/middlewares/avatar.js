@@ -1,7 +1,12 @@
 'use strict';
 
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
 var mime = ['image/jpg', 'image/img', 'image/jpeg'];
-module.exports = async function (req, res, next, user) {
+
+exports.default = async function (req, res, next, user) {
   if (!req.files || Object.keys(req.files).length === 0) {
     res.status(400).json({ success: false, error: { name: "Profile error", message: "No files were uploaded." } });
     return next();
@@ -22,14 +27,20 @@ module.exports = async function (req, res, next, user) {
   var way = './images/' + (Date.now() + '-' + avatar.name);
   user.avatar = way;
 
-  await avatar.mv(way, function (err) {
-    if (err) {
-      res.status(400).json({ success: false, error: { name: "Path error", message: "Some error in saving photo on server" } });
-      return next();
-    }
-  });
+  try {
+    await avatar.mv(way, function (err) {
+      if (err) {
+        res.status(400).json({ success: false, error: { name: "Path error", message: "Some error in saving photo on server" } });
+        return next();
+      }
+    });
 
-  await user.save();
+    await user.save();
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, error: { name: "Critical error", message: "Falied while writing into a file", errorSthamp: err } });
+  }
+
   res.status(201).json({ success: true, user: user });
   return next();
 };

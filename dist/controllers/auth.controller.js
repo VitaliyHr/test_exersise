@@ -31,45 +31,72 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 async function login_controller(req, res, next) {
   var email = req.body.email;
 
-  var candidate = await (0, _user.FindUserByEmail)(email);
+  var candidate = void 0,
+      pass = void 0;
+
+  try {
+    candidate = await (0, _user.FindUserByEmail)(email);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, error: { name: "Critical error", message: "Failed while finding user", errorSthamp: err } });
+    return next();
+  }
 
   if (!candidate) {
     res.status(404).json({ success: false, error: { name: "Database error", message: "No user in db" } });
     return next();
   }
-  var pass = await (0, _bcryptjs.compare)(req.body.password, candidate.password);
+
+  try {
+    pass = await (0, _bcryptjs.compare)(req.body.password, candidate.password);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, error: { name: "Critical error", message: "Failed while comparing password", errorSthamp: err } });
+    return next();
+  }
+
   if (!pass) {
     res.status(400).json({ success: false, error: { name: "Access error", message: "Invalid password" } });
     return next();
   }
-  (0, _session.session_db)(req, res, next, candidate);
-  res.status(200).json({ success: true, user: req.session.user });
-  return next();
+  return await (0, _session.session_db)(req, res, next, candidate);
 }
 
 async function register_controller(req, res, next) {
   var _req$body = req.body,
       email = _req$body.email,
-      password = _req$body.password,
-      confirm = _req$body.confirm;
+      password = _req$body.password;
 
 
-  if (password !== confirm) {
-    res.status(400).json({ success: false, error: { name: "Validation error", message: "password and confirm is not equal" } });
+  var candidate = void 0,
+      hashed_password = void 0,
+      user = void 0;
+  try {
+    candidate = await (0, _user.FindUserByEmail)(email);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, error: { name: "Critical error", message: "Fail while finding user", errorSthamp: err } });
     return next();
   }
-  var candidate = await (0, _user.FindUserByEmail)(email);
+
   if (candidate) {
     res.status(404).json({ success: false, error: { name: "Database error", message: "User have alerady exist" } });
     return next();
   }
-  var hashed_password = await (0, _bcryptjs.hash)(password, _index.SALT);
-  var user = await (0, _user.CreateUser)(email, hashed_password, []);
+  try {
+    hashed_password = await (0, _bcryptjs.hash)(password, _index.SALT);
+    user = await (0, _user.CreateUser)(email, hashed_password, []);
+    await user.save();
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, error: { name: "Critical error", message: "Failed while hashing or creating user", errorSthamp: err } });
+    return next();
+  }
 
   if (req.files) {
     return (0, _avatar2.default)(req, res, next, user);
   }
-  await user.save();
+
   res.status(201).json({ success: true, user: user });
   return next();
 }
@@ -82,12 +109,27 @@ function reset_controller(req, res, next) {
     }
     var password = req.body.password;
 
-    var user = await (0, _user.FindUserById)(req.params.id);
+    var user = void 0,
+        pass = void 0;
+    try {
+      user = await (0, _user.FindUserById)(req.params.id);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ success: false, error: { name: "Critical error", message: "Failed while finding user", errorSthamp: err } });
+      return next();
+    }
+
     if (!user) {
       res.status(404).json({ success: false, error: { name: "Access error", message: "User not found" } });
       return next();
     }
-    var pass = await (0, _bcryptjs.compare)(password, user.password);
+    try {
+      pass = await (0, _bcryptjs.compare)(password, user.password);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ success: false, error: { name: "Critical error", message: "Failed while comparing password", errorSthamp: err } });
+      return next();
+    }
 
     if (!pass) {
       res.status(400).json({ success: false, error: { name: "Access error", message: "invalid password" } });
@@ -96,10 +138,17 @@ function reset_controller(req, res, next) {
     user.resetToken = buffer.toString('hex');
     var token = user.resetToken;
     user.dateToken = Date.now() + 60 * 60 * 1000;
-    await user.save();
+
+    try {
+      await user.save();
+      await (0, _email.sendEmail)(user.email, token);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ success: false, error: { name: "Critical error", message: "Failed while saving user", errorSthamp: err } });
+      return next();
+    }
 
     res.status(200).json({ success: true, user: user });
-    await (0, _email.sendEmail)(user.email, token);
     return next();
   });
 }
@@ -114,17 +163,30 @@ async function SetPass(req, res, next) {
       token = _req$body2.token,
       password = _req$body2.password;
 
-  var candidate = await (0, _user.CheckToken)(token);
-
+  var candidate = void 0,
+      hashpass = void 0;
+  try {
+    candidate = await (0, _user.CheckToken)(token);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, error: "Critical error", message: "Failed while checking token", errorSthamp: err });
+    return next();
+  }
   if (!candidate) {
     res.status(404).json({ success: false, error: { name: "Database error", message: "no such user" } });
     return next();
   }
-  var hashpass = await (0, _bcryptjs.hash)(password, _index.SALT);
-  candidate.password = hashpass;
-  candidate.resetToken = undefined;
-  candidate.dateToken = undefined;
-  await candidate.save();
+  try {
+    hashpass = await (0, _bcryptjs.hash)(password, _index.SALT);
+    candidate.password = hashpass;
+    candidate.resetToken = undefined;
+    candidate.dateToken = undefined;
+    await candidate.save();
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, error: { name: "Critical error", message: "Failed while hashing password", errorSthamp: err } });
+    return next();
+  }
 
   res.status(201).json({ success: true, user: candidate });
   return next();
@@ -132,7 +194,7 @@ async function SetPass(req, res, next) {
 
 async function Logout(req, res, next) {
   req.session.destroy(function () {
-    res.status(204).json({ success: true });
+    res.status(203).json({ success: true });
     return next();
   });
 }

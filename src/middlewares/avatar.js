@@ -20,14 +20,22 @@ export default async (req, res, next, user) => {
   const way = `./images/${ Date.now() + '-' + avatar.name }`;
   user.avatar = way;
 
-  await avatar.mv(way, (err) => {
-    if (err) {
-      res.status(400).json({ success:false, error:{ name:"Path error", message:"Some error in saving photo on server"}});
-      return next();
-    }
-  });
 
-  await user.save();
+  try{
+    await avatar.mv(way, (err) => {
+      if (err) {
+        res.status(400).json({ success:false, error:{ name:"Path error", message:"Some error in saving photo on server"}});
+        return next();
+      }
+    });
+  
+    await user.save();
+  }
+  catch(err){
+    console.log(err);
+    res.status(500).json({success:false, error:{name:"Critical error", message:"Falied while writing into a file", errorSthamp:err}})
+  }
+  
   res.status(201).json({success:true,user});
   return next();
 };
