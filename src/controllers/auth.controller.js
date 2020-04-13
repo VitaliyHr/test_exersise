@@ -1,72 +1,102 @@
-import { compare, hash } from 'bcryptjs';
 import { randomBytes } from 'crypto';
-import { FindUserByEmail, CreateUser, FindUserById, CheckToken } from '../servises/user.servise';
-import { SALT } from '../keys/index';
+import {
+  FindUserByEmail, CreateUser, FindUserById, CheckToken, SetToken, SaveUserChanges,
+} from '../servises/user.servise';
 import avatar from '../middlewares/avatar';
-import { sendEmail } from '../servises/email.servise';
-import { session_db } from '../servises/session.servise';
+import sendEmail from '../servises/email.servise';
+import { DestroySession } from '../servises/session.servise';
+import sessionDb from '../middlewares/session';
+import { ChangePass, Compare, HashPass } from '../servises/bcrypt.servise';
 
-export async function login_controller(req, res, next) {
+export async function loginController(req, res, next) {
   const { email } = req.body;
-  let candidate, pass;
+  let candidate;
+  let pass;
 
   try {
     candidate = await FindUserByEmail(email);
-  }
-  catch (err) {
+  } catch (err) {
     console.log(err);
-    res.status(500).json({ success: false, error: { name: "Critical error", message: "Failed while finding user", errorSthamp:err } });
+    const error = `Failed to find user by email${email}. Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
 
   if (!candidate) {
-    res.status(404).json({ success: false, error: { name: "Database error", message: "No user in db" } });
+    res.status(404).send('No user in db');
     return next();
   }
 
   try {
-    pass = await compare(req.body.password, candidate.password);
-  }
-  catch (err) {
+    pass = await Compare(req.body.password, candidate.password);
+  } catch (err) {
     console.log(err);
-    res.status(500).json({ success: false, error: { name: "Critical error", message: "Failed while comparing password", errorSthamp:err } });
+    const error = `Failed to compare password by bcrypt. Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
 
   if (!pass) {
-    res.status(400).json({ success: false, error: { name: "Access error", message: "Invalid password" } });
+    res.status(400).send('Invalid password');
     return next();
   }
-  return await session_db(req, res, next, candidate);
+  try {
+    await sessionDb(req, res, next, candidate);
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to write session with userId${candidate.id}.Source:${err}`;
+    res.status(500).send(error);
+    return next();
+  }
+
+  res.status(200).json({ success: true, user: req.session.user });
+  return next();
 }
 
 
-export async function register_controller(req, res, next) {
-
+export async function registerController(req, res, next) {
   const { email, password } = req.body;
+  let candidate;
+  let hashedPassword;
+  let user;
 
-  let candidate, hashed_password, user;
   try {
     candidate = await FindUserByEmail(email);
-  }
-  catch (err) {
+  } catch (err) {
     console.log(err);
-    res.status(500).json({ success: false, error: { name: "Critical error", message: "Fail while finding user", errorSthamp:err } });
+    const error = `Failed to find user by email ${email}. Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
 
   if (candidate) {
-    res.status(404).json({ success: false, error: { name: "Database error", message: "User have alerady exist" } });
+    res.status(404).send('User have alerady exist');
+    return next();
+  }
+
+  try {
+    hashedPassword = await HashPass(password);
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to hash password. Source:${err}`;
+    res.status(500).send(error);
+    return next();
+  }
+
+  try {
+    user = await CreateUser(email, hashedPassword, []);
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to create user.Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
   try {
-    hashed_password = await hash(password, SALT);
-    user = await CreateUser(email, hashed_password, []);
-    await user.save();
-  }
-  catch (err) {
+    await SaveUserChanges(user);
+  } catch (err) {
     console.log(err);
-    res.status(500).json({ success: false, error: { name: "Critical error", message: "Failed while hashing or creating user", errorSthamp:err } });
+    const error = `Failed to save user.Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
 
@@ -78,91 +108,124 @@ export async function register_controller(req, res, next) {
   return next();
 }
 
-export function reset_controller(req, res, next) {
+
+export function resetController(req, res, next) {
+
   randomBytes(32, async (err, buffer) => {
     if (err) {
-      res.status(500).json({ error: { name: "Critical error of server", message: "Error in crypto" } });
+      const error = `Error in crypto. Error:${err}`;
+      res.status(500).send(error);
       return next();
     }
     const { password } = req.body;
-    let user, pass;
+    let user;
+    let pass;
+    let newUser;
+
     try {
       user = await FindUserById(req.params.id);
-    }
-    catch (err) {
-      console.log(err);
-      res.status(500).json({ success: false, error: { name: "Critical error", message: "Failed while finding user", errorSthamp:err } });
+    } catch (error) {
+      console.log(error);
+      const e = `Failed to find user by userId${req.params.id}.Source:${error}`;
+      res.status(500).send(e);
       return next();
     }
 
     if (!user) {
-      res.status(404).json({ success: false, error: { name: "Access error", message: "User not found" } })
+      res.status(404).send('User not found');
       return next();
     }
+
     try {
-      pass = await compare(password, user.password);
-    }
-    catch (err) {
-      console.log(err);
-      res.status(500).json({ success: false, error: { name: "Critical error", message: "Failed while comparing password", errorSthamp:err } });
+      pass = await Compare(password, user.password);
+    } catch (error) {
+      console.log(error);
+      const e = `Failed to compare password. Source:${error}`;
+      res.status(500).send(e);
       return next();
     }
 
 
     if (!pass) {
-      res.status(400).json({ success: false, error: { name: "Access error", message: "invalid password" } });
+      res.status(400).send('invalid password');
       return next();
     }
-    user.resetToken = buffer.toString('hex');
-    const token = user.resetToken;
-    user.dateToken = Date.now() + 60 * 60 * 1000;
 
-    try{
-      await user.save();
-      await sendEmail(user.email, token);
-    }
-    catch(err){
-      console.log(err);
-      res.status(500).json({success:false, error:{name:"Critical error", message:"Failed while saving user", errorSthamp:err}});
+    const token = buffer.toString('hex');
+
+    try {
+      newUser = await SetToken(user, token);
+    } catch (error) {
+      console.log(error);
+      const e = `Failed to set token.Source:${error}`;
+      res.status(500).send(e);
       return next();
     }
-    
+
+    try {
+      await SaveUserChanges(newUser);
+    } catch (error) {
+      console.log(error);
+      const e = `Failed to save user. Source:${error}`;
+      res.status(500).send(e);
+      return next();
+    }
+
     res.status(200).json({ success: true, user });
+
+    try {
+      sendEmail(user.email, token);
+    } catch (error) {
+      console.log(error);
+      const e = `Failed to send email. Source:${error}`;
+      res.status(500).send(e);
+      return next();
+    }
     return next();
   });
 }
+
 
 export function getReset(req, res, next) {
   res.status(200).json({ success: true, data: { token: req.params.token } });
   return next();
 }
 
-export async function SetPass(req, res, next) {
 
+export async function SetPass(req, res, next) {
   const { token, password } = req.body;
-  let candidate, hashpass;
+  let candidate;
+  let user;
+
   try {
     candidate = await CheckToken(token);
-  }
-  catch (err) {
+  } catch (err) {
     console.log(err);
-    res.status(500).json({ success: false, error: "Critical error", message: "Failed while checking token", errorSthamp:err });
+    const error = `Failed to check token${token}. Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
+
   if (!candidate) {
-    res.status(404).json({ success: false, error: { name: "Database error", message: "no such user" } });
+    res.status(404).send('user not found');
     return next();
   }
+
   try {
-    hashpass = await hash(password, SALT);
-    candidate.password = hashpass;
-    candidate.resetToken = undefined;
-    candidate.dateToken = undefined;
-    await candidate.save();
-  }
-  catch (err) {
+    user = await ChangePass(candidate, password);
+  } catch (err) {
     console.log(err);
-    res.status(500).json({ success: false, error: { name: "Critical error", message: "Failed while hashing password", errorSthamp:err } });
+    const error = `Failed to change password of user${candidate.id}. Source:${err}`;
+    res.status(500).send(error);
+    return next();
+  }
+
+  try {
+    await SaveUserChanges(user);
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to save user${user.id}. Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
 
@@ -171,8 +234,12 @@ export async function SetPass(req, res, next) {
 }
 
 export async function Logout(req, res, next) {
-  req.session.destroy(() => {
-    res.status(203).json({ success: true });
+  try {
+    DestroySession(req, res, next);
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to destroy session. Source:${err}`;
+    res.status(500).send(error);
     return next();
-  });
+  }
 }

@@ -1,188 +1,279 @@
-import { GetBooks, AddBook, FindBookByID, FindAndDelete } from '../servises/books.servise';
-import { FindUserById } from '../servises/user.servise';
-import { BookCounter } from '../middlewares/BookCounter';
+/* eslint-disable no-underscore-dangle */
 import _ from 'lodash';
+import {
+  GetBooks, AddBook, FindBookByID, FindAndDelete, SaveBookChanges,
+} from '../servises/books.servise';
+import { FindUserById, SaveUserChanges } from '../servises/user.servise';
+import BookCounter from '../middlewares/BookCounter';
+
 
 export async function getBooksForUnlogined(req, res, next) {
   let allbooks;
-  try{
+
+  try {
     allbooks = await GetBooks();
-  }
-  catch(err){
+  } catch (err) {
     console.log(err);
-    res.status(500).json({success:false, error:{name:"Critical error", message:"Failed while finding books", errorSthamp:err}});
+    const error = `Failed to get books. Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
-  
-  const books=_.filter(allbooks,(b)=>b.score>=2);
-  res.status(200).json({ success:true, books});
+
+  const books = _.filter(allbooks, (b) => b.score >= 2);
+  res.status(200).json({ success: true, books });
   return next();
 }
+
 
 export async function getBooksForLogined(req, res, next) {
   let books;
-  try{
+
+  try {
     books = await GetBooks();
-  }
-  catch(err){
+  } catch (err) {
     console.log(err);
-    res.status(500).json({success:false, error:{name:"Citical error",message:"Failed while getting books", errorSthamp:err}});
+    const error = `Failed to get books. Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
 
-  res.status(200).json({ success:true,books});
+  res.status(200).json({ success: true, books });
   return next();
 }
+
 
 export async function AddBooks(req, res, next) {
-  const { title, author, isFinished, notes } = req.body;
+  const {
+    title, author, isFinished, notes,
+  } = req.body;
   let book;
-  try{
-    book = await AddBook(title, author, isFinished, notes, req.session.user._id);
-  }
-  catch(err){
-    console.log(err);
-    res.status(500).json({success:false, error:{name:"Critical error", message:"Failed while adding book", errorSthamp:err}});
-    return next();
-  }
-  res.status(200).json({ success:true, book});
-  return next();
-}
 
-export async function SetOwn(req, res, next) {
-  let book, user;
-  try{
-    book = await FindBookByID(req.params.id);
-    user = await FindUserById(req.session.user._id);
-  }
-  catch(err){
+  try {
+    book = await AddBook(title, author, isFinished, notes, req.session.user._id);
+  } catch (err) {
     console.log(err);
-    res.status(500).json({success:false, error:{ name:"Critical error", message:"Failed while finding user or book", errorSthamp:err}})
+    const error = `Failed to add book. Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
 
   if (!book) {
-    res.status(400).json({ success:false, error:{ name:"Database error", message:"No such book"}});
+    res.status(400).send('Book was not created');
     return next();
   }
-  if (!user) {
-    res.status(400).json({ success:false, error:{ name:"Database error", message:"No such user"}});
+  try {
+    await SaveBookChanges(book);
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to save book changes. Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
-  user.books.push(book.id);
 
-  await BookCounter(req,res,next,book);
-
-  await user.save();
-  res.status(201).json({ success:true, user });
+  res.status(200).json({ success: true, book });
   return next();
 }
 
+
+export async function SetOwn(req, res, next) {
+  let book;
+  let user;
+
+  try {
+    user = await FindUserById(req.session.user._id);
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to find user by userId ${req.session.user._id}.Source:${err}`;
+    res.status(500).send(error);
+    return next();
+  }
+
+  if (!user) {
+    res.status(404).send('user not found');
+    return next();
+  }
+
+  try {
+    book = await FindBookByID(req.params.id);
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to find book by bookId ${req.params.id}.Source:${err}`;
+    res.status(500).send(error);
+    return next();
+  }
+
+  if (!book) {
+    res.status(404).send('Book not found');
+    return next();
+  }
+
+  user.books.push(book.id);
+
+  try {
+    await SaveUserChanges(user);
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to save changes. Source:${err}`;
+    res.status(500).send(error);
+    return next();
+  }
+
+  try {
+    await BookCounter(req, res, next, book);
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to save books changes. Source:${err}`;
+    res.status(500).send(error);
+    return next();
+  }
+
+  res.status(201).json({ success: true, user });
+  return next();
+}
+
+
 export async function GetOwn(req, res, next) {
   let user;
-  try{
+  try {
     user = await (await FindUserById(req.session.user._id)).populate('books._id').execPopulate();
-  }
-  catch(err){
+  } catch (err) {
     console.log(err);
-    res.status(500).json({success:false, error:{name:"Citical error", message:"Failed while finding user", errorSthamp:err}});
+    const error = `Failed to find user by userId${req.session.user._id}. Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
 
   if (req.body.filterBy) {
     const { filterBy } = req.body;
-    
-    if (filterBy == 'author') {
-      const books = _.filter(user.books,(b)=>b._id.author==req.body.author);
-      res.status(200).json({ success:true,books});
+
+    if (filterBy === 'author') {
+      const books = _.filter(user.books, (b) => b._id.author === req.body.author);
+      res.status(200).json({ success: true, books });
       return next();
     }
 
-    if (filterBy == 'isFinished') {
-      const books = _.filter(user.books,(b)=>b._id.isFinished===JSON.parse(req.body.isFinished));
-      res.status(200).json({ success:true, books });
+    if (filterBy === 'isFinished') {
+      const books = _.filter(user.books, (b) => b._id.isFinished === JSON.parse(req.body.isFinished));
+      res.status(200).json({ success: true, books });
       return next();
     }
   }
-  res.status(200).json({ success:true, books:user.books});
+  res.status(200).json({ success: true, books: user.books });
   return next();
 }
 
+
 export async function BookInfo(req, res, next) {
   let book;
-  try{
+  try {
     book = await FindBookByID(req.params.id);
-  }
-  catch(err){
+  } catch (err) {
     console.log(err);
-    res.status(500).json({success:false, error:{name:"Cititcal error", message:"Failed while finding book", errorSthamp:err}});
+    const error = `Failed to find book by bookId ${req.params.id}. Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
 
   if (!book) {
-    res.status(404).json({success:false, error:{ name:"Datatbase error", message:"cannot find such book"}});
+    res.status(404).send('book not found');
     return next();
   }
-  res.status(200).json({ success:true, book});
+  res.status(200).json({ success: true, book });
   return next();
 }
+
 
 export async function EditBook(req, res, next) {
   const { user } = await req.session;
   let book;
-  try{
+
+  try {
     book = await FindBookByID(req.params.id);
-  }
-  catch(err){
+  } catch (err) {
     console.log(err);
-    res.status(500).json({success:false, error:{name:"Critical error", message:"Failed while finding book", errorSthamp:err}});
+    const error = `Failed to find book by bookId ${req.params.id}. Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
   if (!book) {
-    res.status(404).json({ success:false, error:{ name:"Database error", name:"invalid book"}});
+    res.status(404).send('book not found');
     return next();
   }
 
-  if (book.userId.toString() != user._id) {
-    res.status(400).json({success:false, error:{ name: 'Unequal error', message: 'can\'t redact becouse of root' }});
+  if (book.userId.toString() !== user._id.toString()) {
+    res.status(400).json({ success: false, error: { message: 'can\'t redact becouse of root' } });
     return next();
   }
   Object.assign(book, req.body);
-  await book.save();
-  res.status(200).json({ success:true, book});
+  try {
+    await SaveBookChanges(book);
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to save changes in book ${book.id}. Source:${err}`;
+    res.status(500).send(error);
+    return next();
+  }
+  res.status(200).json({ success: true, book });
   return next();
 }
 
+
 export async function DeleteBook(req, res, next) {
   let book;
-  try{
+  let user;
+  let result;
+
+  try {
     book = await FindBookByID(req.params.id);
-  }catch(err){
-    console.log(err)
-    res.status(500).json({ success:false, error:{name:"Critical error", message:"Failed while finding book", errorSthamp:err}});
-    return next();
-  }
-  
-  if (!book) {
-    res.status(404).json({ success:false, error:{ name:"Database error", message:"No such book"}});
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to find book by bookId ${req.params.id}. Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
 
-  if (book.userId.toString()!= req.session.user._id.toString()) {
-    res.status(400).json({ success:false, error:{ name:"Access error", message:"you can\'t delete becouse of root"}});
+  if (!book) {
+    res.status(404).send('book not found');
     return next();
   }
-  try{
-  const user = await FindUserById(req.session.user._id);
-  user.books.filter(b=>b._id==book.id?undefined:b);
-  await user.save();
-  await FindAndDelete(book.id);
+
+  if (book.userId.toString() !== req.session.user._id.toString()) {
+    res.status(400).send('you can\'t delete becouse of root');
+    return next();
   }
-  catch(err){
+
+  try {
+    user = await FindUserById(req.session.user._id);
+  } catch (err) {
     console.log(err);
-    res.status(500).json({success:false, error:{name:"Critical error", message:"Failed while finding user or deleting book",errorSthamp:err}});
+    const error = `Failed to find user by userId ${req.session.user._id}. Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
-  res.status(204).json({ success:true,message:'book was deleted'});
+  user.books = await _.filter(user.books, (b) => b._id === book.id);
+
+  try {
+    await SaveUserChanges(user);
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to save changes in user ${user.id}. Source:${err}`;
+    res.status(500).send(error);
+    return next();
+  }
+
+  try {
+    result = await FindAndDelete(book.id);
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to delete book by bookId ${book.id}. Source:${err}`;
+    res.status(500).send(error);
+    return next();
+  }
+  if (!result) {
+    res.status(400).send('Book was not deleted from database');
+    return next();
+  }
+
+  res.status(204).json({ success: true, message: 'book was deleted' });
   return next();
 }

@@ -1,19 +1,18 @@
 import express from 'express';
+import { connect } from 'mongoose';
 import fileUpload from 'express-fileupload';
 import { join } from 'path';
 import session from 'express-session';
-const SessionStore = require('connect-mongodb-session')({ session });
-import { connect } from 'mongoose';
 
 import authRouter from './routes/auth';
 import profileRouter from './routes/profile';
 import booksRouter from './routes/books';
-import { MONGODB_URI, SESSION_SECRET } from './keys/index';
+import { MONGODB_URI, SESSION_SECRET, PORT } from './keys/index';
+
+const SessionStore = require('connect-mongodb-session')({ session });
 
 
 const app = express();
-
-const PORT = process.env.PORT || 3000;
 
 
 const store = new SessionStore({
@@ -56,6 +55,8 @@ async function start() {
     });
   } catch (e) {
     console.log(e);
+    const error = `Failed to connect to mongoDB. Error:${e}`;
+    throw new Error(error);
   }
 }
 start();

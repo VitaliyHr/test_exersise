@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import auth from '../middlewares/auth';
-import { Profile } from '../controllers/profile.controller';
+import Profile from '../controllers/profile.controller';
 
 const router = Router();
 
-//зміна avatara
+// зміна avatara
 router.post('/', auth, Profile);
 
 

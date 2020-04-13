@@ -1,20 +1,20 @@
 import { FindUserById } from '../servises/user.servise';
 import avatar from '../middlewares/avatar';
 
-export async function Profile(req, res, next) {
+export default async function Profile(req, res, next) {
   let user;
-  try{
+  try {
     user = await FindUserById(req.session.user._id);
-  }
-  catch(err){
+  } catch (err) {
     console.log(err);
-    res.status(500).json({success:false, error:{name:"Critical error", message:"Failed while finding user", errorSthamp:err}});
+    const error = `Failed to find user by userId ${req.session.user._id}. Source:${err}`;
+    res.status(500).send(error);
     return next();
   }
   if (req.files) {
     return avatar(req, res, next, user);
   }
-  await user.save();
-  res.status(400).json({ success:false, error:{name:"Request error", message:"File not found"}});
+
+  res.status(400).send('image not found');
   return next();
 }

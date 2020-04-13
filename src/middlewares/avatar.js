@@ -1,41 +1,51 @@
+import { SaveUserChanges } from '../servises/user.servise';
 
 const mime = ['image/jpg', 'image/img', 'image/jpeg'];
+
 export default async (req, res, next, user) => {
   if (!req.files || Object.keys(req.files).length === 0) {
-    res.status(400).json({success:false,error:{name:"Profile error",message:"No files were uploaded."}});
+    res.status(400).send('No files were uploaded.');
     return next();
   }
 
   const { avatar } = req.files;
   if (!mime.includes(avatar.mimetype)) {
-    res.status(400).json({ success:false,error:{name:"Mimetype error", message:"The file must be a image" }});
+    res.status(400).send('The file must be a image');
     return next();
   }
 
   if ((avatar.size / 1024) > 2048) {
-    res.status(400).json({ success:false, error:{ name:"Size limit", message:"image is bigger than 2mb"}});
+    res.status(400).send('image is bigger than 2mb');
     return next();
   }
 
-  const way = `./images/${ Date.now() + '-' + avatar.name }`;
+  const way = `./images/${`${Date.now()}-${avatar.name}`}`;
   user.avatar = way;
 
 
-  try{
+  try {
     await avatar.mv(way, (err) => {
       if (err) {
-        res.status(400).json({ success:false, error:{ name:"Path error", message:"Some error in saving photo on server"}});
+        res.status(400).json({ success: false, error: { message: 'Some error in saving photo on server', errorSthamp: err } });
         return next();
       }
     });
-  
-    await user.save();
-  }
-  catch(err){
+  } catch (err) {
     console.log(err);
-    res.status(500).json({success:false, error:{name:"Critical error", message:"Falied while writing into a file", errorSthamp:err}})
+    const error = 'Falied while writing into a file';
+    res.status(500).send(error);
+    return next();
   }
-  
-  res.status(201).json({success:true,user});
+
+  try {
+    await SaveUserChanges(user);
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to save changes in user by userId ${user.id}. Source:${err}`;
+    res.status(500).send(error);
+    return next();
+  }
+
+  res.status(201).json({ success: true, user });
   return next();
 };

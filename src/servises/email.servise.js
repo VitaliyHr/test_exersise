@@ -11,10 +11,16 @@ const sender = createTransport({
 });
 
 
-export async function sendEmail(email, token) {
-  sender.sendMail(await reset(email, token), (err) => {
-    if (err) {
-      console.log(err);
-    }
-  });
+export default function sendEmail(email, token) {
+  try {
+    sender.sendMail(reset(email, token), (err) => {
+      if (err) {
+        console.log(err);
+      }
+    });
+  } catch (err) {
+    console.log(err);
+    const error = `Failed to send email. Error:${err}`;
+    throw new Error(error);
+  }
 }
