@@ -5,6 +5,9 @@ import {
 } from '../servises/books.servise';
 import { FindUserById, SaveUserChanges } from '../servises/user.servise';
 import BookCounter from '../middlewares/BookCounter';
+import log4js from '../middlewares/loggerConfig';
+
+const logger = log4js.getLogger('debug');
 
 
 export async function getBooksForUnlogined(req, res, next) {
@@ -13,10 +16,9 @@ export async function getBooksForUnlogined(req, res, next) {
   try {
     allbooks = await GetBooks();
   } catch (err) {
-    console.log(err);
-    const error = `Failed to get books. Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = 'Failed to get books';
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
 
   const books = _.filter(allbooks, (b) => b.score >= 2);
@@ -31,10 +33,9 @@ export async function getBooksForLogined(req, res, next) {
   try {
     books = await GetBooks();
   } catch (err) {
-    console.log(err);
-    const error = `Failed to get books. Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = 'Failed to get books';
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
 
   res.status(200).json({ success: true, books });
@@ -43,34 +44,24 @@ export async function getBooksForLogined(req, res, next) {
 
 
 export async function AddBooks(req, res, next) {
-  const {
-    title, author, isFinished, notes,
-  } = req.body;
   let book;
 
   try {
-    book = await AddBook(title, author, isFinished, notes, req.session.user._id);
+    book = await AddBook(req.body, req.session.user._id);
   } catch (err) {
-    console.log(err);
-    const error = `Failed to add book. Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = `Failed to add book ${err}`;
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
 
   if (!book) {
-    res.status(400).send('Book was not created');
-    return next();
-  }
-  try {
-    await SaveBookChanges(book);
-  } catch (err) {
-    console.log(err);
-    const error = `Failed to save book changes. Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = `Failed to create book by user ${req.session.user._id}`;
+    res.status(400).json({ success: false, error });
+    return next(new Error(error));
   }
 
-  res.status(200).json({ success: true, book });
+  res.status(201).json({ success: true, book });
+  logger.info(`Added new book ${book.id}`);
   return next();
 }
 
@@ -82,29 +73,29 @@ export async function SetOwn(req, res, next) {
   try {
     user = await FindUserById(req.session.user._id);
   } catch (err) {
-    console.log(err);
-    const error = `Failed to find user by userId ${req.session.user._id}.Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = `Failed to find user by userId ${req.session.user._id}`;
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
 
   if (!user) {
-    res.status(404).send('user not found');
+    const error = 'user not found';
+    res.status(404).json({ success: false, error });
     return next();
   }
 
   try {
     book = await FindBookByID(req.params.id);
   } catch (err) {
-    console.log(err);
-    const error = `Failed to find book by bookId ${req.params.id}.Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = `Failed to find book by bookId ${req.params.id}`;
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
 
   if (!book) {
-    res.status(404).send('Book not found');
-    return next();
+    const error = 'Book not found';
+    res.status(404).json({ success: false, error });
+    return next(new Error(error));
   }
 
   user.books.push(book.id);
@@ -112,19 +103,17 @@ export async function SetOwn(req, res, next) {
   try {
     await SaveUserChanges(user);
   } catch (err) {
-    console.log(err);
-    const error = `Failed to save changes. Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = 'Failed to save changes';
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
 
   try {
-    await BookCounter(req, res, next, book);
+    await BookCounter(book);
   } catch (err) {
-    console.log(err);
-    const error = `Failed to save books changes. Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = 'Failed to save books changes';
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
 
   res.status(201).json({ success: true, user });
@@ -134,26 +123,33 @@ export async function SetOwn(req, res, next) {
 
 export async function GetOwn(req, res, next) {
   let user;
+  let IsFinished;
+  let books;
+  const { filterBy } = req.body;
   try {
     user = await (await FindUserById(req.session.user._id)).populate('books._id').execPopulate();
   } catch (err) {
-    console.log(err);
-    const error = `Failed to find user by userId${req.session.user._id}. Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = `Failed to find user by userId ${req.session.user._id}`;
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
 
   if (req.body.filterBy) {
-    const { filterBy } = req.body;
-
     if (filterBy === 'author') {
-      const books = _.filter(user.books, (b) => b._id.author === req.body.author);
+      books = _.filter(user.books, (b) => b._id.author === req.body.author);
       res.status(200).json({ success: true, books });
       return next();
     }
 
     if (filterBy === 'isFinished') {
-      const books = _.filter(user.books, (b) => b._id.isFinished === JSON.parse(req.body.isFinished));
+      try {
+        IsFinished = JSON.parse(req.body.isFinished);
+      } catch (err) {
+        const error = `Failed to parse JSON at body.isFinished by user ${user.id}`;
+        res.status(500).json({ success: false, error });
+        return next(new Error(error));
+      }
+      books = _.filter(user.books, (b) => b._id.isFinished === IsFinished);
       res.status(200).json({ success: true, books });
       return next();
     }
@@ -168,15 +164,15 @@ export async function BookInfo(req, res, next) {
   try {
     book = await FindBookByID(req.params.id);
   } catch (err) {
-    console.log(err);
-    const error = `Failed to find book by bookId ${req.params.id}. Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = `Failed to find book by bookId ${req.params.id}`;
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
 
   if (!book) {
-    res.status(404).send('book not found');
-    return next();
+    const error = 'book not found';
+    res.status(404).json({ success: false, error });
+    return next(new Error(error, req.params.id));
   }
   res.status(200).json({ success: true, book });
   return next();
@@ -185,35 +181,46 @@ export async function BookInfo(req, res, next) {
 
 export async function EditBook(req, res, next) {
   const { user } = await req.session;
+  const {
+    title, author, isFinished, notes, userId,
+  } = req.body;
   let book;
 
+  if (user._id.toString() !== userId) {
+    const error = 'User is not exist';
+    res.status(400).json({ success: false, error });
+    return next(new Error(error));
+  }
   try {
     book = await FindBookByID(req.params.id);
   } catch (err) {
-    console.log(err);
-    const error = `Failed to find book by bookId ${req.params.id}. Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = `Failed to find book by bookId ${req.params.id}`;
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
   if (!book) {
-    res.status(404).send('book not found');
-    return next();
+    const error = `Book ${req.params.id} not found`;
+    res.status(404).json({ success: false, error });
+    return next(new Error(error));
   }
 
   if (book.userId.toString() !== user._id.toString()) {
-    res.status(400).json({ success: false, error: { message: 'can\'t redact becouse of root' } });
-    return next();
+    const error = 'Access error';
+    res.status(400).json({ success: false, error });
+    return next(new Error(error));
   }
-  Object.assign(book, req.body);
+  const UpdatedAt = new Date();
+  book.UpdatedAt = UpdatedAt;
+  Object.assign(book, title, author, isFinished, notes, UpdatedAt);
   try {
     await SaveBookChanges(book);
   } catch (err) {
-    console.log(err);
-    const error = `Failed to save changes in book ${book.id}. Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = `Failed to save changes in book ${book.id}`;
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
   res.status(200).json({ success: true, book });
+  logger.info(`Book ${book.id} was updated`);
   return next();
 }
 
@@ -221,59 +228,59 @@ export async function EditBook(req, res, next) {
 export async function DeleteBook(req, res, next) {
   let book;
   let user;
-  let result;
 
   try {
     book = await FindBookByID(req.params.id);
   } catch (err) {
-    console.log(err);
-    const error = `Failed to find book by bookId ${req.params.id}. Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = `Failed to find book by bookId ${req.params.id}`;
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
 
   if (!book) {
-    res.status(404).send('book not found');
-    return next();
+    const error = 'book not found';
+    res.status(404).json({ success: false, error });
+    return next(new Error(error));
   }
 
   if (book.userId.toString() !== req.session.user._id.toString()) {
-    res.status(400).send('you can\'t delete becouse of root');
-    return next();
+    const error = 'Access error';
+    res.status(400).json({ success: false, error });
+    return next(new Error(error));
   }
 
   try {
     user = await FindUserById(req.session.user._id);
   } catch (err) {
-    console.log(err);
-    const error = `Failed to find user by userId ${req.session.user._id}. Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = `Failed to find user by userId ${req.session.user._id}`;
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
+  if (!user) {
+    const error = `User ${req.session.user._id} not found`;
+    res.status(404).json({ success: false, error });
+    return next(new Error(error));
+  }
+
   user.books = await _.filter(user.books, (b) => b._id === book.id);
 
   try {
     await SaveUserChanges(user);
   } catch (err) {
-    console.log(err);
-    const error = `Failed to save changes in user ${user.id}. Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = `Failed to save changes in user ${user.id}`;
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
 
   try {
-    result = await FindAndDelete(book.id);
+    await FindAndDelete(book.id);
   } catch (err) {
-    console.log(err);
-    const error = `Failed to delete book by bookId ${book.id}. Source:${err}`;
-    res.status(500).send(error);
-    return next();
-  }
-  if (!result) {
-    res.status(400).send('Book was not deleted from database');
-    return next();
+    const error = `Failed to delete book by bookId ${book.id}`;
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
 
-  res.status(204).json({ success: true, message: 'book was deleted' });
+  res.status(205).json({ success: true, message: 'book was deleted' });
+  logger.info(`Book ${book.id} was deleted`);
   return next();
 }

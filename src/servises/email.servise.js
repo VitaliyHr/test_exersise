@@ -1,26 +1,21 @@
 import { createTransport } from 'nodemailer';
+import sendgrid from 'nodemailer-sendgrid-transport';
 import reset from '../emails/reset';
-import { LOGIN, PASS } from '../keys/index';
+import { SendGridAPIKEY } from '../keys/index';
 
-const sender = createTransport({
-  servise: 'gmail',
+
+const sender = createTransport(sendgrid({
   auth: {
-    user: LOGIN,
-    pass: PASS,
+    api_key: SendGridAPIKEY,
   },
-});
+}));
 
 
-export default function sendEmail(email, token) {
+export default async function sendEmail(email, token) {
   try {
-    sender.sendMail(reset(email, token), (err) => {
-      if (err) {
-        console.log(err);
-      }
-    });
+    await sender.sendMail(reset(email, token));
   } catch (err) {
-    console.log(err);
-    const error = `Failed to send email. Error:${err}`;
+    const error = `Failed to send message to user ${email} ${err}`;
     throw new Error(error);
   }
 }

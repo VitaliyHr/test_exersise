@@ -26,6 +26,14 @@ const books = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'User',
   },
+  CreatedAt: {
+    type: Schema.Types.Date,
+    required: true,
+    default: new Date(),
+  },
+  UpdatedAt: {
+    type: Schema.Types.Date,
+  },
 });
 
 export default model('Books', books);

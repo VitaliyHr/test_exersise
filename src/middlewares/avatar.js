@@ -1,51 +1,51 @@
 import { SaveUserChanges } from '../servises/user.servise';
+import log4js from './loggerConfig';
+
+const logger = log4js.getLogger('error');
 
 const mime = ['image/jpg', 'image/img', 'image/jpeg'];
 
 export default async (req, res, next, user) => {
   if (!req.files || Object.keys(req.files).length === 0) {
-    res.status(400).send('No files were uploaded.');
-    return next();
+    const error = 'Image not found';
+    res.status(404).json({ success: false, error });
+    return next(new Error(error));
   }
 
   const { avatar } = req.files;
+
   if (!mime.includes(avatar.mimetype)) {
-    res.status(400).send('The file must be a image');
-    return next();
+    const error = 'The file must be a image';
+    res.status(400).json({ success: false, error });
+    return next(new Error(error));
   }
 
   if ((avatar.size / 1024) > 2048) {
-    res.status(400).send('image is bigger than 2mb');
-    return next();
+    const error = 'Image is bigger than 2mb';
+    res.status(400).json({ success: false, error });
+    return next(new Error(error));
   }
 
   const way = `./images/${`${Date.now()}-${avatar.name}`}`;
   user.avatar = way;
 
-
   try {
-    await avatar.mv(way, (err) => {
-      if (err) {
-        res.status(400).json({ success: false, error: { message: 'Some error in saving photo on server', errorSthamp: err } });
-        return next();
-      }
-    });
+    await avatar.mv(way);
   } catch (err) {
-    console.log(err);
-    const error = 'Falied while writing into a file';
-    res.status(500).send(error);
-    return next();
+    const error = 'Some error in saving photo on server';
+    res.status(400).json({ success: false, error });
+    return next(new Error(error));
   }
+
 
   try {
     await SaveUserChanges(user);
   } catch (err) {
-    console.log(err);
-    const error = `Failed to save changes in user by userId ${user.id}. Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = `Failed to save changes in user by userId ${user.id}`;
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
-
+  logger.info(`Image userId ${user.id} was saved on server`);
   res.status(201).json({ success: true, user });
   return next();
 };

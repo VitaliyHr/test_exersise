@@ -1,6 +1,8 @@
 export default function (req, res, next) {
   if (!req.session.isAuthenticated) {
-    return res.status(400).send('You are not logined to do it');
+    const error = 'Trying to get unaccessible data';
+    res.status(400).json({ success: false, error });
+    return next(new Error(error));
   }
   return next();
 }

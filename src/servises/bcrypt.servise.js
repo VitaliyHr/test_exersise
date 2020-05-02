@@ -1,14 +1,14 @@
 import { hash, compare } from 'bcryptjs';
 import { SALT } from '../keys/index';
 
+
 export const HashPass = async (pass) => {
   let hp;
 
   try {
     hp = await hash(pass, SALT);
   } catch (err) {
-    console.log(err);
-    const error = `failed to hash password. Error:${err}`;
+    const error = 'failed to hash password';
     throw new Error(error);
   }
 
@@ -22,8 +22,8 @@ export const ChangePass = async (user, newPass) => {
   try {
     hashpass = await HashPass(newPass);
   } catch (err) {
-    console.log(err);
-    throw new Error(err);
+    const error = 'Failed to hash password';
+    throw new Error(error);
   }
 
   user.password = hashpass;
@@ -39,8 +39,7 @@ export const Compare = async (pass, hashed) => {
   try {
     result = await compare(pass, hashed);
   } catch (err) {
-    console.log(err);
-    const error = `Failed to compare password. Error:${err}`;
+    const error = 'Failed to compare password';
     throw new Error(error);
   }
 

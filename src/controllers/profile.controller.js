@@ -6,15 +6,15 @@ export default async function Profile(req, res, next) {
   try {
     user = await FindUserById(req.session.user._id);
   } catch (err) {
-    console.log(err);
-    const error = `Failed to find user by userId ${req.session.user._id}. Source:${err}`;
-    res.status(500).send(error);
-    return next();
+    const error = `Failed to find user by userId ${req.session.user._id}`;
+    res.status(500).json({ success: false, error });
+    return next(new Error(error));
   }
-  if (req.files) {
-    return avatar(req, res, next, user);
+  if (!req.files) {
+    const error = 'image not found';
+    res.status(404).json({ success: false, error });
+    return next(new Error(error));
   }
 
-  res.status(400).send('image not found');
-  return next();
+  return avatar(req, res, next, user);
 }

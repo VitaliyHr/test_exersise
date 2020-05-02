@@ -1,6 +1,6 @@
 import { SaveBookChanges } from '../servises/books.servise';
 
-export default async function BookCounter(req, res, next, book) {
+export default async function BookCounter(book) {
   book.count += 1;
   if (book.count === 2) {
     book.score = 5;
@@ -9,5 +9,9 @@ export default async function BookCounter(req, res, next, book) {
   } else if (book.count === 7) {
     book.score = 15;
   }
-  await SaveBookChanges(book);
+  try {
+    await SaveBookChanges(book);
+  } catch (err) {
+    throw new Error(err);
+  }
 }

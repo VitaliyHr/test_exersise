@@ -3,3 +3,6 @@ node_modules
 dist
 images
 src/keys/keys.dev.js
+logs
+.eslintignore
+.package-lock.json

@@ -2,54 +2,49 @@ import User from '../models/user';
 
 
 export async function FindUserById(id) {
-  if (id) {
-    let user;
+  let user;
 
-    try {
-      user = await User.findById(id);
-    } catch (err) {
-      console.log(err);
-      const error = `Failed to find user. Error:${err}`;
-      throw new Error(error);
-    }
-
-    return user;
+  try {
+    user = await User.findById(id);
+  } catch (err) {
+    const error = 'Failed to find user';
+    throw new Error(error);
   }
+
+  return user;
 }
 
 export async function FindUserByEmail(email) {
-  if (email) {
-    let user;
-    try {
-      user = await User.findOne({ email });
-    } catch (err) {
-      console.log(err);
-      const error = `Failed to findOne by email. Error:${err}`;
-      throw new Error(error);
-    }
-
-    return user;
+  let user;
+  try {
+    user = await User.findOne({ email });
+  } catch (err) {
+    const error = 'Failed to find one by email';
+    throw new Error(error);
   }
+
+  return user;
 }
 
 export async function SaveUserChanges(user) {
-  if (!user) {
-    throw new Error('Function was called without params');
-  }
   try {
     await user.save();
   } catch (err) {
-    console.log(err);
-    const error = `Failed to save changes. Error${err}`;
+    const error = 'Failed to save changes';
     throw new Error(error);
   }
 }
 
-export async function CreateUser(email, password, books) {
+export async function CreateUser(email, password) {
   const user = new User({
-    email, password, books,
+    email, password,
   });
-
+  try {
+    await user.save();
+  } catch (err) {
+    const error = 'Failed to save new user in database';
+    throw new Error(error);
+  }
   return user;
 }
 
@@ -62,16 +57,14 @@ export async function CheckToken(token) {
       dateToken: { $gte: Date.now() },
     });
   } catch (err) {
-    console.log(err);
-    const error = `Failed to find user by token. Error:${err}`;
+    const error = 'Failed to find user by token';
     throw new Error(error);
   }
-  if (user) {
-    return user;
-  }
+
+  return user;
 }
 
-export async function SetToken(user, resetToken) {
+export function SetToken(user, resetToken) {
   user.resetToken = resetToken;
   user.dateToken = Date.now() + 60 * 60 * 1000;
 
