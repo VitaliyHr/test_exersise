@@ -1,4 +1,4 @@
-import { SaveBookChanges } from '../servises/books.servise';
+import { SaveBookChanges } from '../servises/books';
 
 export default async function BookCounter(book) {
   book.count += 1;

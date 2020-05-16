@@ -1,4 +1,4 @@
-import { SaveSession } from '../servises/session.servise';
+import { SaveSession } from '../servises/session';
 
 export default async function sessionDb(req, user) {
   req.session.user = user;

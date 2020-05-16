@@ -2,12 +2,12 @@ import { randomBytes } from 'crypto';
 import log4js from '../middlewares/loggerConfig';
 import {
   FindUserByEmail, CreateUser, FindUserById, CheckToken, SetToken, SaveUserChanges,
-} from '../servises/user.servise';
+} from '../servises/user';
 import avatar from '../middlewares/avatar';
-import sendEmail from '../servises/email.servise';
-import { DestroySession } from '../servises/session.servise';
+import sendEmail from '../servises/email';
+import { DestroySession } from '../servises/session';
 import sessionDb from '../middlewares/session';
-import { ChangePass, Compare, HashPass } from '../servises/bcrypt.servise';
+import { ChangePass, Compare, HashPass } from '../servises/bcrypt';
 
 const infoLogger = log4js.getLogger();
 

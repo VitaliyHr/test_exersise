@@ -1,14 +1,15 @@
 import { createTransport } from 'nodemailer';
-import sendgrid from 'nodemailer-sendgrid-transport';
-import reset from '../emails/reset';
-import { SendGridAPIKEY } from '../keys/index';
+import config from 'config';
+import reset from '../../components/emails/reset';
 
 
-const sender = createTransport(sendgrid({
+const sender = createTransport({
+  host: 'smtp.gmail.com',
   auth: {
-    api_key: SendGridAPIKEY,
+    user: config.get('LOGIN'),
+    pass: config.get('PASS'),
   },
-}));
+});
 
 
 export default async function sendEmail(email, token) {

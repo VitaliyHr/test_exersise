@@ -1,5 +1,5 @@
-process.env.NODE_ENV = 'test';
 const faker = require('faker');
+const config = require('config');
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const fs = require('fs');
@@ -10,8 +10,10 @@ chai.use(chaiHttp);
 
 const { expect } = chai;
 
+const MOUNT = config.get('SITE_MOUNT');
+
 const email = faker.internet.email();
-const password = faker.internet.password();
+const password = faker.internet.password(6);
 const confirm = password;
 const title = faker.fake('Book');
 const author = faker.internet.userName('Vitaliy','Hryhoriv');
@@ -33,7 +35,7 @@ describe('autorization', () => {
 
   it('should register new user', (done) => {
     agent
-      .post('/auth/register')
+      .post(`${MOUNT}/auth/register`)
       .send({
         email,
         password,
@@ -56,7 +58,7 @@ describe('autorization', () => {
 
   it('should return logined user', (done) => {
     agent
-      .post('/auth/login')
+      .post(`${MOUNT}/auth/login`)
       .send({
         email,
         password,
@@ -77,7 +79,7 @@ describe('autorization', () => {
 
   it('should make reset token', (done) => {
     agent
-      .post(`/auth/reset/${id}`)
+      .post(`${MOUNT}/auth/change/${id}`)
       .send({ password })
       .end((err, res) => {
         expect(err).to.be.null;
@@ -98,7 +100,7 @@ describe('autorization', () => {
 
   it('should get a reset page', (done) => {
     agent
-      .get(`/auth/reset/${token}`)
+      .get(`${MOUNT}/auth/change/${token}`)
       .end((err, res) => {
         expect(err).to.be.null;
         expect(res).to.be.json;
@@ -112,7 +114,7 @@ describe('autorization', () => {
 
   it('should change password', (done) => {
     agent
-      .put('/auth/password')
+      .put(`${MOUNT}/auth/password`)
       .send({
         token,
         password,
@@ -134,7 +136,7 @@ describe('autorization', () => {
 
   it('should to logout', (done) => {
     agent
-      .post('/auth/logout')
+      .post(`${MOUNT}/auth/exit`)
       .end((err, res) => {
         expect(err).to.be.null;
         expect(res).to.be.json;
@@ -152,7 +154,7 @@ describe('Book check', () => {
 
   before((done) => {
     agent
-    .post('/auth/login')
+    .post(`${MOUNT}/auth/login`)
     .send({
       email,
       password,
@@ -173,7 +175,7 @@ describe('Book check', () => {
 
   it('should return books for unlogined users', (done) => {
     agent
-      .get('/books')
+      .get(`${MOUNT}/books`)
       .end((err, res) => {
         expect(err).to.be.null;
         expect(res).to.be.json;
@@ -187,7 +189,7 @@ describe('Book check', () => {
 
   it('should return books for logined users', (done) => {
     agent
-      .get('/books/logined_user')
+      .get(`${MOUNT}/books/logined_user`)
       .end((err, res) => {
         expect(err).to.be.null;
         expect(res).to.be.json;
@@ -201,7 +203,7 @@ describe('Book check', () => {
 
   it('should add a new book', (done) => {
     agent
-      .put('/books/add')
+      .put(`${MOUNT}/books/creation`)
       .send({
         title,
         author,
@@ -228,7 +230,7 @@ describe('Book check', () => {
 
   it('should add book to user libriary', (done) => {
     agent 
-     .post(`/books/setOwn/${bookId}`)
+     .post(`${MOUNT}/books/own/${bookId}`)
      .end((err, res) => {
        expect(err).to.be.null;
        expect(res).to.be.json;
@@ -243,7 +245,7 @@ describe('Book check', () => {
 
   it('should return user\'s books', (done) => {
     agent
-      .post('/books/getOwn')
+      .post(`${MOUNT}/books/own`)
       .send({
         filterBy: 'isFinished',
         isFinished: false,
@@ -261,7 +263,7 @@ describe('Book check', () => {
  
   it('should return info about book', (done) => {
     agent
-      .get(`/books/${bookId}/info`)
+      .get(`${MOUNT}/books/${bookId}/info`)
       .end((err, res) => {
         expect(err).to.be.null;
         expect(res).to.be.json;
@@ -281,7 +283,7 @@ describe('Book check', () => {
   it('should edit some book', (done) => {
     let title = faker.fake('Test');
     agent
-      .patch(`/books/${bookId}/edit`)
+      .patch(`${MOUNT}/books/${bookId}/edit`)
       .send({
         title,
         author: faker.internet.userName('Taras', 'Shevchenko'),
@@ -306,7 +308,7 @@ describe('Book check', () => {
 
   it('should delete some book', (done) => {
     agent
-      .delete(`/books/${bookId}/delete`)
+      .delete(`${MOUNT}/books/${bookId}`)
       .end((err, res) => {
         expect(err).to.be.null;
         expect(res).to.be.json;
@@ -323,9 +325,9 @@ describe('Profile',() => {
 
   it('should change avatar', (done) => {
     agent
-      .post('/profile')
+      .post(`${MOUNT}/profile`)
       .set('Content-Type', 'multipart/form-data')
-      .attach('avatar', fs.readFileSync(`${__dirname}/../images/2579.jpg`),{ filename: 'avatar.jpg', contentType:'image/jpg'})
+      .attach('avatar', fs.readFileSync(`${__dirname}/assets/2579.jpg`),{ filename: 'avatar.jpg', contentType:'image/jpg'})
       .type('form')
       .end((err, res) => {
         expect(err).to.be.null;

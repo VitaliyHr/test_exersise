@@ -2,8 +2,8 @@
 import _ from 'lodash';
 import {
   GetBooks, AddBook, FindBookByID, FindAndDelete, SaveBookChanges,
-} from '../servises/books.servise';
-import { FindUserById, SaveUserChanges } from '../servises/user.servise';
+} from '../servises/books';
+import { FindUserById, SaveUserChanges } from '../servises/user';
 import BookCounter from '../middlewares/BookCounter';
 import log4js from '../middlewares/loggerConfig';
 

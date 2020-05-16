@@ -2,7 +2,7 @@ import { body, param } from 'express-validator';
 
 export const loginvalidator = [
   body('email').isEmail().trim().normalizeEmail()
-    .withMessage('Wrong email')
+    .withMessage('Incorrect email')
     .notEmpty(),
   body('password').isLength({ min: 3 }).trim()
     .withMessage('Min password length is 3')
@@ -55,7 +55,6 @@ export const ParamsValidator = [
 ];
 
 export const PassValidator = [
-  body('password').trim().isAlphanumeric().notEmpty()
-    .isLength({ min: 3 })
-    .withMessage('Password must be at lesat 3 symbols'),
+  body('password').trim().notEmpty().isLength({ min: 3 })
+    .withMessage('Incorrect password'),
 ];

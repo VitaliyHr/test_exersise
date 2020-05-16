@@ -1,4 +1,4 @@
-import { FindUserById } from '../servises/user.servise';
+import { FindUserById } from '../servises/user';
 import avatar from '../middlewares/avatar';
 
 export default async function Profile(req, res, next) {

@@ -4,11 +4,9 @@ import fileUpload from 'express-fileupload';
 import { join } from 'path';
 import session from 'express-session';
 import compression from 'compression';
+import config from 'config';
 
-import authRouter from './routes/auth';
-import profileRouter from './routes/profile';
-import booksRouter from './routes/books';
-import { MONGODB_URI, SESSION_SECRET, PORT } from './keys/index';
+import Router from './routes/index';
 import log4js from './middlewares/loggerConfig';
 
 const SessionStore = require('connect-mongodb-session')({ session });
@@ -21,7 +19,7 @@ const errLogger = log4js.getLogger('error');
 
 const store = new SessionStore({
   collection: 'sessions',
-  uri: MONGODB_URI,
+  uri: config.get('MONGODB_URI'),
 });
 
 app.use(express.static(join(__dirname, 'images')));
@@ -39,23 +37,21 @@ app.use(log4js.connectLogger(errLogger));
 app.use(session({
   resave: false,
   saveUninitialized: false,
-  secret: SESSION_SECRET,
+  secret: config.get('SESSION_SECRET'),
   store,
 }));
 
-app.use('/auth', authRouter);
-
-app.use('/profile', profileRouter);
-
-app.use('/books', booksRouter);
+app.use(config.get('SITE_MOUNT'), Router.CreateRouter());
 
 async function start() {
   try {
-    await connect(MONGODB_URI, {
+    await connect(config.get('MONGODB_URI'), {
       useFindAndModify: false,
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
+
+    const PORT = config.get('PORT');
     app.listen(PORT, () => {
       logger.info(`Server is alive on ${PORT}`);
       app.emit('AppStarted');
@@ -63,7 +59,7 @@ async function start() {
   } catch (e) {
     const error = `Failed to connect to mongoDB.${e}`;
     errLogger.fatal(error);
-    throw new Error(error);
+    process.exit(1);
   }
 }
 

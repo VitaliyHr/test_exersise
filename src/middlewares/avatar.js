@@ -1,4 +1,4 @@
-import { SaveUserChanges } from '../servises/user.servise';
+import { SaveUserChanges } from '../servises/user';
 import log4js from './loggerConfig';
 
 const logger = log4js.getLogger('error');
