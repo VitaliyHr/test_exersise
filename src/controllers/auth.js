@@ -158,7 +158,6 @@ export function reset(req, res, next) {
     }
 
     infoLogger.info(`User ${user.id} want to change password`);
-    res.status(200).json({ success: true, user });
     try {
       await sendEmail(user.email, token);
     } catch (error) {
@@ -166,6 +165,8 @@ export function reset(req, res, next) {
       res.status(500).json({ success: false, error: e });
       return next(new Error(e));
     }
+
+    res.status(200).json({ success: true, user });
     return next();
   });
 }
