@@ -1,13 +1,13 @@
 import { createTransport } from 'nodemailer';
-import config from 'config';
+import { LOGIN, PASS } from '../../config/config';
 import reset from '../../components/emails/reset';
 
 
 const sender = createTransport({
   host: 'smtp.gmail.com',
   auth: {
-    user: config.get('LOGIN'),
-    pass: config.get('PASS'),
+    user: LOGIN,
+    pass: PASS,
   },
 });
 

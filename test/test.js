@@ -1,5 +1,5 @@
 const faker = require('faker');
-const config = require('config');
+const { SITE_MOUNT } = require('../config/config');
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const fs = require('fs');
@@ -10,7 +10,7 @@ chai.use(chaiHttp);
 
 const { expect } = chai;
 
-const MOUNT = config.get('SITE_MOUNT');
+const MOUNT = SITE_MOUNT;
 
 const email = faker.internet.email();
 const password = faker.internet.password(6);

@@ -1,12 +1,12 @@
 import { hash, compare } from 'bcryptjs';
-import config from 'config';
+import { SALT } from '../../config/config';
 
 
 export const HashPass = async (pass) => {
   let hp;
 
   try {
-    hp = await hash(pass, config.get('SALT'));
+    hp = await hash(pass, SALT);
   } catch (err) {
     const error = 'failed to hash password';
     throw new Error(error);

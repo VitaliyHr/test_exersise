@@ -1,10 +1,10 @@
-const config = require('config');
+const { LOGIN, SITE_MOUNT, SITE_URI } = require('../../config/config.js');
 
 module.exports = (email, token) => ({
   to: email,
-  from: config.get('LOGIN'),
+  from: LOGIN,
   subject: 'Password reset',
   html: `
-        <p><a href="${config.get('SITE_URI')}${config.get('SITE_MOUNT')}/auth/change/${token}">Скинути пароль</a></p>
+        <p><a href="${SITE_URI}${SITE_MOUNT}/auth/change/${token}">Скинути пароль</a></p>
         <hr>`,
 });

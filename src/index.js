@@ -4,10 +4,12 @@ import fileUpload from 'express-fileupload';
 import { join } from 'path';
 import session from 'express-session';
 import compression from 'compression';
-import config from 'config';
 
 import Router from './routes/index';
 import log4js from './middlewares/loggerConfig';
+import {
+  MONGODB_URI, SESSION_SECRET, SITE_MOUNT, PORT,
+} from '../config/config';
 
 const SessionStore = require('connect-mongodb-session')({ session });
 
@@ -19,7 +21,7 @@ const errLogger = log4js.getLogger('error');
 
 const store = new SessionStore({
   collection: 'sessions',
-  uri: config.get('MONGODB_URI'),
+  uri: MONGODB_URI,
 });
 
 app.use(express.static(join(__dirname, 'images')));
@@ -37,21 +39,20 @@ app.use(log4js.connectLogger(errLogger));
 app.use(session({
   resave: false,
   saveUninitialized: false,
-  secret: config.get('SESSION_SECRET'),
+  secret: SESSION_SECRET,
   store,
 }));
 
-app.use(config.get('SITE_MOUNT'), Router.CreateRouter());
+app.use(SITE_MOUNT, Router.CreateRouter());
 
 async function start() {
   try {
-    await connect(config.get('MONGODB_URI'), {
+    await connect(MONGODB_URI, {
       useFindAndModify: false,
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
 
-    const PORT = config.get('PORT');
     app.listen(PORT, () => {
       logger.info(`Server is alive on ${PORT}`);
       app.emit('AppStarted');
