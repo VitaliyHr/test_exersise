@@ -8,7 +8,7 @@ export async function FindUserById(id) {
     user = await User.findById(id);
   } catch (err) {
     const error = 'Failed to find user';
-    throw new Error(error);
+    throw error;
   }
 
   return user;
@@ -20,7 +20,7 @@ export async function FindUserByEmail(email) {
     user = await User.findOne({ email });
   } catch (err) {
     const error = 'Failed to find one by email';
-    throw new Error(error);
+    throw error;
   }
 
   return user;
@@ -31,7 +31,7 @@ export async function SaveUserChanges(user) {
     await user.save();
   } catch (err) {
     const error = 'Failed to save changes';
-    throw new Error(error);
+    throw error;
   }
 }
 
@@ -43,7 +43,7 @@ export async function CreateUser(email, password) {
     await user.save();
   } catch (err) {
     const error = 'Failed to save new user in database';
-    throw new Error(error);
+    throw error;
   }
   return user;
 }
@@ -58,7 +58,7 @@ export async function CheckToken(token) {
     });
   } catch (err) {
     const error = 'Failed to find user by token';
-    throw new Error(error);
+    throw error;
   }
 
   return user;

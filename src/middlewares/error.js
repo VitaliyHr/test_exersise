@@ -1,4 +1,4 @@
-import log4js from './loggerConfig';
+import log4js from './loggerconfig';
 
 const logger = log4js.getLogger('error');
 

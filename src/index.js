@@ -4,9 +4,11 @@ import fileUpload from 'express-fileupload';
 import { join } from 'path';
 import session from 'express-session';
 import compression from 'compression';
+import pool from './middlewares/pgconfig';
 
+// import { trigger, table, funct } from './models/books';
 import Router from './routes/index';
-import log4js from './middlewares/loggerConfig';
+import log4js from './middlewares/loggerconfig';
 import {
   MONGODB_URI, SESSION_SECRET, SITE_MOUNT, PORT,
 } from '../config/config';
@@ -25,17 +27,11 @@ const store = new SessionStore({
 });
 
 app.use(express.static(join(__dirname, 'images')));
-
 app.use(express.urlencoded({ extended: true }));
-
 app.use(compression());
-
 app.use(fileUpload());
-
 app.use(express.json());
-
 app.use(log4js.connectLogger(errLogger));
-
 app.use(session({
   resave: false,
   saveUninitialized: false,
@@ -45,6 +41,12 @@ app.use(session({
 
 app.use(SITE_MOUNT, Router.CreateRouter());
 
+app.use((req, res) => {
+  if (!res.headersSent) {
+    res.status(404).json({ error: 'Page not found' });
+  }
+});
+
 async function start() {
   try {
     await connect(MONGODB_URI, {
@@ -53,14 +55,25 @@ async function start() {
       useUnifiedTopology: true,
     });
 
+    await pool.connect();
+
+    // try {
+    //   await pool.query(table);
+    //   await pool.query(funct);
+    //   await pool.query(trigger);
+    // } catch (err) {
+    //   const error = `Failed to create table. ${err}`;
+    //   throw error;
+    // }
+
     app.listen(PORT, () => {
       logger.info(`Server is alive on ${PORT}`);
       app.emit('AppStarted');
     });
   } catch (e) {
-    const error = `Failed to connect to mongoDB.${e}`;
-    errLogger.fatal(error);
-    process.exit(1);
+    const error = new Error(`Failed to connect to DB.${e}`);
+    errLogger.fatal(error.message);
+    setTimeout(() => process.exit(1), 1500);
   }
 }
 

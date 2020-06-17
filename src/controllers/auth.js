@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import log4js from '../middlewares/loggerConfig';
+import log4js from '../middlewares/loggerconfig';
 import {
   FindUserByEmail, CreateUser, FindUserById, CheckToken, SetToken, SaveUserChanges,
 } from '../servises/user';
@@ -22,7 +22,7 @@ export async function login(req, res, next) {
   } catch (err) {
     const error = `Failed to find user by email ${email}`;
     res.status(500).json({ success: false, error });
-    return next(new Error(error));
+    return next(error);
   }
 
   if (!candidate) {
@@ -36,20 +36,21 @@ export async function login(req, res, next) {
   } catch (err) {
     const error = `Failed to compare candidate ${candidate.id} password by bcrypt`;
     res.status(500).json({ success: false, error });
-    return next(new Error(error));
+    return next(error);
   }
 
   if (!pass) {
     const error = `Invalid userid ${candidate.id} password `;
     res.status(400).json({ success: false, error });
-    return next(new SyntaxError(error));
+    return next(error);
   }
+
   try {
     sessionDb(req, candidate);
   } catch (err) {
     const error = `Failed to save session with userId${candidate.id}`;
     res.status(500).json({ success: false, error });
-    return next(new Error(error));
+    return next(error);
   }
 
   infoLogger.info(`User ${candidate.id} logined`);
@@ -69,13 +70,13 @@ export async function register(req, res, next) {
   } catch (err) {
     const error = `Failed to find user by email ${email}  ${err}`;
     res.status(500).json({ success: false, error });
-    return next(new Error(error));
+    return next(error);
   }
 
   if (candidate) {
     const error = `User with email ${email} have alerady existst`;
     res.status(400).json({ success: false, error });
-    return next(new Error(error));
+    return next(error);
   }
 
   try {
@@ -83,7 +84,7 @@ export async function register(req, res, next) {
   } catch (err) {
     const error = `Failed to hash userId ${candidate.id} password`;
     res.status(500).json({ success: false, error });
-    return next(new Error(error));
+    return next(error);
   }
 
   try {
@@ -91,7 +92,7 @@ export async function register(req, res, next) {
   } catch (err) {
     const error = `Failed to create user ${err}`;
     res.status(500).json({ success: false, error });
-    return next(new Error(error));
+    return next(error);
   }
 
   infoLogger.info(`Created new user ${user.id}`);
@@ -110,7 +111,7 @@ export function reset(req, res, next) {
     if (err) {
       const error = `Error in crypto ${err}`;
       res.status(500).json({ success: false, error });
-      return next(new Error(error));
+      return next(error);
     }
     const { password } = req.body;
     const { id } = req.params;
@@ -122,7 +123,7 @@ export function reset(req, res, next) {
     } catch (error) {
       const e = `Failed to find user by userId${req.params.id}`;
       res.status(500).json({ success: false, error: e });
-      return next(new Error(e));
+      return next(e);
     }
 
     if (!user) {
@@ -136,14 +137,14 @@ export function reset(req, res, next) {
     } catch (error) {
       const e = `Failed to compare userId ${id} password`;
       res.status(500).json({ success: false, error: e });
-      return next(new Error(e));
+      return next(e);
     }
 
 
     if (!pass) {
       const error = `Invalid user ${id} password`;
       res.status(400).json({ success: false, error });
-      return next(new Error(error));
+      return next(error);
     }
 
     const token = buffer.toString('hex');
@@ -154,7 +155,7 @@ export function reset(req, res, next) {
     } catch (error) {
       const e = `Failed to save user ${id}`;
       res.status(500).json({ success: false, error: e });
-      return next(new Error(e));
+      return next(e);
     }
 
     infoLogger.info(`User ${user.id} want to change password`);
@@ -163,7 +164,7 @@ export function reset(req, res, next) {
     } catch (error) {
       const e = `Failed to send email to user ${id} ${error}`;
       res.status(500).json({ success: false, error: e });
-      return next(new Error(e));
+      return next(e);
     }
 
     res.status(200).json({ success: true, user });
@@ -188,13 +189,13 @@ export async function SetPass(req, res, next) {
   } catch (err) {
     const error = `Failed to check token ${token}`;
     res.status(500).json({ success: false, error });
-    return next(new Error(error));
+    return next(error);
   }
 
   if (!candidate) {
     const error = `User with token ${token} not found`;
     res.status(404).json({ success: false, error });
-    return next(new Error(error));
+    return next(error);
   }
 
   try {
@@ -202,7 +203,7 @@ export async function SetPass(req, res, next) {
   } catch (err) {
     const error = `Failed to change password of user${candidate.id}`;
     res.status(500).json({ success: false, error });
-    return next(new Error(error));
+    return next(error);
   }
 
   try {
@@ -210,7 +211,7 @@ export async function SetPass(req, res, next) {
   } catch (err) {
     const error = `Failed to save user${user.id}`;
     res.status(500).json({ success: false, error });
-    return next(new Error(error));
+    return next(error);
   }
   infoLogger.info(`User ${user.id} changed password`);
   res.status(200).json({ success: true, user: candidate });
@@ -224,6 +225,6 @@ export async function Logout(req, res, next) {
   } catch (err) {
     const error = `Failed to destroy session ${err}`;
     res.status(500).json({ success: false, error });
-    return next(new Error(error));
+    return next(error);
   }
 }

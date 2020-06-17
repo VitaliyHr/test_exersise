@@ -3,7 +3,7 @@ export async function SaveSession(req) {
   await req.session.save((err) => {
     if (err) {
       const error = 'Failed to save session';
-      throw new Error(error);
+      throw error;
     }
   });
 }
@@ -16,6 +16,6 @@ export const DestroySession = (req, res, next) => {
     });
   } catch (err) {
     const error = 'Failed to destroy session';
-    throw new Error(error);
+    throw error;
   }
 };

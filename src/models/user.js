@@ -15,12 +15,6 @@ const user = new Schema({
   resetToken: String,
   dateToken: Date,
   books: [
-    {
-      _id: {
-        type: Schema.Types.ObjectId,
-        ref: 'Books',
-      },
-    },
   ],
 });
 

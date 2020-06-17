@@ -2,11 +2,9 @@ import { Router } from 'express';
 import auth from '../middlewares/auth';
 import { addBookVal, patchbook, ParamsValidator } from '../middlewares/validator';
 import {
-  getBooksForUnlogined,
-  getBooksForLogined,
+  getBooks,
   AddBooks,
-  SetOwn,
-  GetOwn,
+  Own,
   BookInfo,
   EditBook,
   DeleteBook,
@@ -18,20 +16,14 @@ import ErrorHandler from '../middlewares/error';
 const CreateRouter = () => {
   const router = Router();
 
-  // книги для незареєстрованих користувачів
-  router.get('/', getBooksForUnlogined, ErrorHandler);
-
-  // книги для зареєстрованих користувачів
-  router.get('/logined_user', auth, getBooksForLogined, ErrorHandler);
+  // книги для користувачів
+  router.get('/', getBooks, ErrorHandler);
 
   // додати книгу
-  router.put('/creation', auth, addBookVal, checkValidator, AddBooks, ErrorHandler);
+  router.put('/newbook', auth, addBookVal, checkValidator, AddBooks, ErrorHandler);
 
-  // додати книгу в бібліотеку користувача
-  router.post('/own/:id', auth, ParamsValidator, checkValidator, SetOwn, ErrorHandler);
-
-  // видати всі книги з бібліотеки користувача
-  router.post('/own', auth, GetOwn, ErrorHandler);
+  // книги користувача
+  router.post('/own', auth, Own, ErrorHandler);
 
   // інформація про книгу
   router.get('/:id/info', auth, ParamsValidator, checkValidator, BookInfo, ErrorHandler);

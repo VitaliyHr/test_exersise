@@ -8,8 +8,8 @@ export const HashPass = async (pass) => {
   try {
     hp = await hash(pass, SALT);
   } catch (err) {
-    const error = 'failed to hash password';
-    throw new Error(error);
+    const error = 'Failed to hash password';
+    throw error;
   }
 
   return hp;
@@ -23,7 +23,7 @@ export const ChangePass = async (user, newPass) => {
     hashpass = await HashPass(newPass);
   } catch (err) {
     const error = 'Failed to hash password';
-    throw new Error(error);
+    throw error;
   }
 
   user.password = hashpass;
@@ -40,7 +40,7 @@ export const Compare = async (pass, hashed) => {
     result = await compare(pass, hashed);
   } catch (err) {
     const error = 'Failed to compare password';
-    throw new Error(error);
+    throw error;
   }
 
   return result;

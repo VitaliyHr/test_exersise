@@ -29,7 +29,7 @@ export const addBookVal = [
     .withMessage('Invalid title'),
   body('author').isString().trim().notEmpty()
     .withMessage('Invalid author'),
-  body('isFinished').isBoolean().notEmpty()
+  body('isfinished').isBoolean().notEmpty()
     .withMessage('is Finished only true or false'),
   body('notes').isString().trim().notEmpty()
     .withMessage('notes must be a String'),
@@ -41,17 +41,17 @@ export const patchbook = [
     .withMessage('Invalid title'),
   body('author').isString().trim().notEmpty()
     .withMessage('Invalid author'),
-  body('isFinished').isBoolean()
+  body('isfinished').isBoolean()
     .withMessage('is Finished only true or false'),
   body('notes').isString().trim()
     .withMessage('notes must be String'),
-  body('userId').isMongoId()
+  body('userid').isMongoId()
     .withMessage('it must be a mongo db id'),
 ];
 
 export const ParamsValidator = [
-  param('id').isMongoId()
-    .withMessage('Wrong url'),
+  param('id').isString()
+    .withMessage('Incorrect url'),
 ];
 
 export const PassValidator = [

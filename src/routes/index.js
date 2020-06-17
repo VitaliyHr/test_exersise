@@ -12,14 +12,6 @@ const CreateRouter = () => {
 
   app.use('/profile', profile.CreateRouter());
 
-  app.use((req, res, next) => {
-    if (!res.headersSent) {
-      res.status(404).json({ success: false, error: 'Invalid url' });
-      return next();
-    }
-    return next();
-  });
-
   return app;
 };
 

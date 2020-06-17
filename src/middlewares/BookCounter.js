@@ -9,9 +9,5 @@ export default async function BookCounter(book) {
   } else if (book.count === 7) {
     book.score = 15;
   }
-  try {
-    await SaveBookChanges(book);
-  } catch (err) {
-    throw new Error(err);
-  }
+  await SaveBookChanges(book);
 }

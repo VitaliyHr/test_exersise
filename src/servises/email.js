@@ -17,6 +17,6 @@ export default async function sendEmail(email, token) {
     await sender.sendMail(reset(email, token));
   } catch (err) {
     const error = `Failed to send message to user ${email} ${err}`;
-    throw new Error(error);
+    throw error;
   }
 }
