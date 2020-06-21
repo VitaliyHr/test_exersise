@@ -1,1 +1,8 @@
 node_modules
+.eslintrc.js
+dist
+images
+src/keys/keys.dev.js
+logs
+.eslintignore
+.package-lock.json

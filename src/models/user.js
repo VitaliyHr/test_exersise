@@ -1,4 +1,4 @@
-const { Schema, model } = require('mongoose');
+import { Schema, model } from 'mongoose';
 
 const user = new Schema({
   email: {
@@ -15,13 +15,7 @@ const user = new Schema({
   resetToken: String,
   dateToken: Date,
   books: [
-    {
-      _id: {
-        type: Schema.Types.ObjectId,
-        ref: 'Books',
-      },
-    },
   ],
 });
 
-module.exports = model('User', user);
+export default model('User', user);
